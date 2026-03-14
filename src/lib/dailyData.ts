@@ -1,25 +1,18 @@
 import fs from "fs/promises";
 import path from "path";
+import { CATEGORIES, type Category } from "./categories";
 
-export type DailyDataMap = Record<string, string>;
+export type DailyCategoryData = Partial<Record<Category, string>>;
+export type DailyDataMap = Record<string, DailyCategoryData>;
 
-/**
- * DATA.md 파싱해서 날짜별 데이터 맵으로 변환
- * 형식:
- *
- * ## 2026-01-01
- * 오늘 한 일...
- *
- * ## 2026-01-02
- * ...
- */
-export async function getDailyData(): Promise<DailyDataMap> {
+async function parseCategoryFile(category: Category): Promise<DailyCategoryData> {
+  const map: DailyCategoryData = {};
+
   try {
-    const filePath = path.join(process.cwd(), "DATA.md");
+    const filePath = path.join(process.cwd(), "data", `${category}.md`);
     const raw = await fs.readFile(filePath, "utf8");
 
     const lines = raw.split(/\r?\n/);
-    const map: DailyDataMap = {};
 
     let currentDate: string | null = null;
     let buffer: string[] = [];
@@ -28,7 +21,7 @@ export async function getDailyData(): Promise<DailyDataMap> {
       if (currentDate) {
         const text = buffer.join("\n").trim();
         if (text) {
-          map[currentDate] = text;
+          map[currentDate as keyof DailyCategoryData] = text;
         }
       }
       buffer = [];
@@ -37,7 +30,6 @@ export async function getDailyData(): Promise<DailyDataMap> {
     for (const line of lines) {
       const headingMatch = line.match(/^##\s+(\d{4}-\d{2}-\d{2})\s*$/);
       if (headingMatch) {
-        // 새로운 날짜 블록 시작
         flush();
         currentDate = headingMatch[1];
       } else {
@@ -47,15 +39,34 @@ export async function getDailyData(): Promise<DailyDataMap> {
       }
     }
 
-    // 마지막 블록 비우기
     flush();
-
-    return map;
   } catch (e) {
-    // DATA.md 가 아직 없거나 문제가 있어도 화면은 깨지지 않도록
-    console.error("[getDailyData] Failed to read DATA.md", e);
-    return {};
+    // 해당 카테고리 파일이 없거나 읽기 실패해도 전체 흐름에는 영향 없도록
+    console.error(`[parseCategoryFile] Failed for ${category}`, e);
   }
+
+  return map;
+}
+
+/**
+ * data/ 하위의 각 카테고리별 .md 파일을 파싱해서
+ * 날짜별로 BOOK/WORKOUT/FINANCE/CAREER_DEV/OTHER 데이터를 합친 맵을 만든다.
+ */
+export async function getDailyData(): Promise<DailyDataMap> {
+  const result: DailyDataMap = {};
+
+  for (const category of CATEGORIES) {
+    const perDate = await parseCategoryFile(category);
+
+    for (const [date, text] of Object.entries(perDate)) {
+      if (!result[date]) {
+        result[date] = {};
+      }
+      result[date][category] = text;
+    }
+  }
+
+  return result;
 }
 
 export function getDatesForYear(year: number): string[] {
