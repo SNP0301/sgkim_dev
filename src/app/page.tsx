@@ -10,7 +10,7 @@ export default async function Home() {
     <main className="mx-auto max-w-3xl px-4 py-16">
       <h1 className="text-3xl font-bold">sgkim.dev</h1>
       <p className="mt-4 text-muted-foreground">
-        개발 블로그 준비 중입니다.
+        옳은 길로 바르게
       </p>
       <Link
         href="/blog"
@@ -34,8 +34,7 @@ export default async function Home() {
           </span>
         </h2>
         <p className="text-sm text-muted-foreground mb-3">
-          각 셀에 마우스를 올리면 `DATA.md`에 정의한 해당 날짜의 데이터가
-          툴팁으로 표시됩니다.
+          오늘 저는 무슨 활동을 했을까요?
         </p>
 
         <div className="inline-block rounded-md border border-neutral-200 bg-white p-3 text-[0px] dark:border-neutral-800 dark:bg-neutral-950">
